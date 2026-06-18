@@ -1,15 +1,20 @@
+
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
 export default function SignupPage() {
   const router = useRouter();
   const supabase = createClient();
+
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -19,18 +24,23 @@ export default function SignupPage() {
     setError(null);
 
     if (!acknowledged) {
-      setError("Please confirm you've read the safety notice before continuing.");
+      setError(
+        "Please confirm you've read the safety notice before continuing."
+      );
       return;
     }
 
     setLoading(true);
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     });
 
     if (signUpError || !data.user) {
-      setError(signUpError?.message ?? "Something went wrong creating your account.");
+      setError(
+        signUpError?.message ?? "Something went wrong creating your account."
+      );
       setLoading(false);
       return;
     }
@@ -52,23 +62,33 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-12">
       <div className="card w-full max-w-md">
-        <h1 className="font-display text-2xl text-ink-900 mb-1">Create your account</h1>
+        <h1 className="font-display text-2xl text-ink-900 mb-1">
+          Create your account
+        </h1>
+
         <p className="text-ink-500 text-sm mb-6">
-          Use a display name, not your real name, if you'd rather stay anonymous.
+          Use a display name, not your real name, if you'd rather stay
+          anonymous.
         </p>
 
         <div className="bg-gold-100 border border-gold-500/30 rounded-card p-4 mb-6 text-sm text-ink-700">
-          <p className="font-medium text-ink-900 mb-1">Before you continue</p>
+          <p className="font-medium text-ink-900 mb-1">
+            Before you continue
+          </p>
+
           <p>
             Never share your phone number, your exact location, or other
-            identifying details with people you're matched with here.
-            Keep the conversation on this app.
+            identifying details with people you're matched with here. Keep the
+            conversation on this app.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">Display name</label>
+            <label className="block text-sm font-medium text-ink-700 mb-1">
+              Display name
+            </label>
+
             <input
               required
               value={displayName}
@@ -77,8 +97,12 @@ export default function SignupPage() {
               placeholder="e.g. QuietRiver"
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-ink-700 mb-1">
+              Email
+            </label>
+
             <input
               required
               type="email"
@@ -87,16 +111,36 @@ export default function SignupPage() {
               className="input-field"
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">Password</label>
-            <input
-              required
-              minLength={8}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input-field"
-            />
+            <label className="block text-sm font-medium text-ink-700 mb-1">
+              Password
+            </label>
+
+            <div className="relative">
+              <input
+                required
+                minLength={8}
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input-field pr-12"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-800 transition-colors"
+                aria-label={
+                  showPassword ? "Hide password" : "Show password"
+                }
+              >
+                <FontAwesomeIcon
+                  icon={showPassword ? faEye : faEyeSlash}
+                  className="h-4 w-4"
+                />
+              </button>
+            </div>
           </div>
 
           <label className="flex items-start gap-2 text-sm text-ink-700">
@@ -106,13 +150,24 @@ export default function SignupPage() {
               onChange={(e) => setAcknowledged(e.target.checked)}
               className="mt-1"
             />
-            I understand I shouldn't share my phone number or exact
-            location, and that this is peer support, not therapy.
+
+            <span>
+              I understand I shouldn't share my phone number or exact location,
+              and that this is peer support, not therapy.
+            </span>
           </label>
 
-          {error && <p className="text-clay-600 text-sm">{error}</p>}
+          {error && (
+            <p className="text-clay-600 text-sm">
+              {error}
+            </p>
+          )}
 
-          <button type="submit" disabled={loading} className="btn-primary w-full">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full"
+          >
             {loading ? "Creating account…" : "Create account"}
           </button>
         </form>
@@ -120,3 +175,4 @@ export default function SignupPage() {
     </main>
   );
 }
+
