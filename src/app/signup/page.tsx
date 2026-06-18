@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -6,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import Link from "next/link";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -14,7 +14,9 @@ export default function SignupPage() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,11 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
 
     if (!acknowledged) {
       setError(
@@ -131,9 +138,7 @@ export default function SignupPage() {
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-800 transition-colors"
-                aria-label={
-                  showPassword ? "Hide password" : "Show password"
-                }
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 <FontAwesomeIcon
                   icon={showPassword ? faEye : faEyeSlash}
@@ -141,6 +146,48 @@ export default function SignupPage() {
                 />
               </button>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-ink-700 mb-1">
+              Confirm Password
+            </label>
+
+            <div className="relative">
+              <input
+                required
+                minLength={8}
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="input-field pr-12"
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowConfirmPassword((prev) => !prev)
+                }
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-800 transition-colors"
+                aria-label={
+                  showConfirmPassword
+                    ? "Hide confirm password"
+                    : "Show confirm password"
+                }
+              >
+                <FontAwesomeIcon
+                  icon={showConfirmPassword ? faEye : faEyeSlash}
+                  className="h-4 w-4"
+                />
+              </button>
+            </div>
+
+            {confirmPassword &&
+              password !== confirmPassword && (
+                <p className="mt-1 text-sm text-clay-600">
+                  Passwords do not match.
+                </p>
+              )}
           </div>
 
           <label className="flex items-start gap-2 text-sm text-ink-700">
@@ -165,14 +212,28 @@ export default function SignupPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={
+              loading ||
+              !password ||
+              !confirmPassword ||
+              password !== confirmPassword
+            }
             className="btn-primary w-full"
           >
             {loading ? "Creating account…" : "Create account"}
           </button>
         </form>
+
+        <div className="mt-6 text-center text-sm text-ink-600">
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="text-ink-900 font-medium hover:underline"
+          >
+            Sign in
+          </Link>
+        </div>
       </div>
     </main>
   );
 }
-

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -6,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -116,8 +116,17 @@ export default function LoginPage() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
+
+        <div className="mt-6 text-center text-sm text-ink-600">
+          Don't have an account?{" "}
+          <Link
+            href="/signup"
+            className="text-ink-900 font-medium hover:underline"
+          >
+            Sign up
+          </Link>
+        </div>
       </div>
     </main>
   );
 }
-
