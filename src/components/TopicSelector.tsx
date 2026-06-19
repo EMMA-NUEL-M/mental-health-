@@ -27,16 +27,16 @@ export default function TopicSelector({ topics, selections, onChange }: Props) {
         return (
           <div
             key={topic.id}
-            className="border border-ink-500/10 rounded-card px-4 py-3"
+            className="border border-ink-500/10 rounded-card px-3 py-3 sm:px-4"
           >
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <span className="text-ink-900 text-sm font-medium">{topic.name}</span>
 
-              <div className="flex rounded-card overflow-hidden border border-ink-500/20 text-xs">
+              <div className="flex w-full rounded-card overflow-hidden border border-ink-500/20 text-xs sm:w-auto">
                 <button
                   type="button"
                   onClick={() => setKind(topic.id, selection.kind === "strength" ? null : "strength")}
-                  className={`px-3 py-1.5 ${
+                  className={`flex-1 px-3 py-2 sm:flex-none sm:py-1.5 ${
                     selection.kind === "strength" ? "bg-sage-600 text-white" : "bg-white text-ink-700"
                   }`}
                 >
@@ -45,7 +45,7 @@ export default function TopicSelector({ topics, selections, onChange }: Props) {
                 <button
                   type="button"
                   onClick={() => setKind(topic.id, selection.kind === "weakness" ? null : "weakness")}
-                  className={`px-3 py-1.5 border-l border-ink-500/20 ${
+                  className={`flex-1 px-3 py-2 border-l border-ink-500/20 sm:flex-none sm:py-1.5 ${
                     selection.kind === "weakness" ? "bg-gold-500 text-white" : "bg-white text-ink-700"
                   }`}
                 >
@@ -55,7 +55,7 @@ export default function TopicSelector({ topics, selections, onChange }: Props) {
             </div>
 
             {selection.kind && (
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex flex-wrap items-center gap-2 mt-3">
                 <span className="text-xs text-ink-500">Rate 1-5:</span>
                 <div className="flex gap-1.5">
                   {[1, 2, 3, 4, 5].map((value) => (
