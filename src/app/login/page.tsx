@@ -47,7 +47,15 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(profile?.onboarded ? "/waiting" : "/onboarding");
+   router.push(profile?.onboarded ? "/lobby" : "/onboarding");
+   
+  }
+
+  async function handleGoogleSignIn() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
   }
 
   return (
@@ -56,6 +64,15 @@ export default function LoginPage() {
         <h1 className="font-display text-2xl text-ink-900 mb-6">
           Welcome back
         </h1>
+
+        <button onClick={handleGoogleSignIn} className="btn-secondary w-full mb-5">
+          Continue with Google
+        </button>
+        <div className="flex items-center gap-3 mb-5 text-xs text-ink-500">
+          <div className="h-px bg-ink-500/15 flex-1" />
+          or use email
+          <div className="h-px bg-ink-500/15 flex-1" />
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

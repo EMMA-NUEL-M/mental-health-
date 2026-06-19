@@ -128,7 +128,7 @@ export default function ChatPage() {
       .update({ status: accept ? "active" : "rejected" })
       .eq("id", match.id);
 
-    if (!accept) router.push("/waiting");
+    if (!accept) router.push("/lobby");
   }
 
   async function sendMessage(text: string) {
@@ -153,7 +153,7 @@ export default function ChatPage() {
   async function endMatch() {
     if (!match) return;
     await supabase.from("matches").update({ status: "ended" }).eq("id", match.id);
-    router.push("/waiting");
+    router.push("/lobby");
   }
 
   if (!match || !other || !userId) {

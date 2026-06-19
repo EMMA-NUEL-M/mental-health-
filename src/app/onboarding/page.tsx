@@ -21,7 +21,7 @@ export default function OnboardingPage() {
     supabase
       .from("topics")
       .select("id, name")
-      .order("name")
+      .order("sort_order")
       .then(({ data }) => setTopics(data ?? []));
   }, [supabase]);
 
@@ -66,7 +66,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    router.push("/waiting");
+    router.push("/lobby");
   }
 
   return (
@@ -108,9 +108,17 @@ export default function OnboardingPage() {
 
         <section className="card">
           <h2 className="font-medium text-ink-900 mb-1">Your strengths and what you're working on</h2>
+          <p className="text-ink-500 text-sm mb-2">
+            Mark a topic as a <strong className="font-bold text-sage-600">Strength</strong> if you
+            feel equipped to support someone there, or{" "}
+            <strong className="font-bold text-gold-500">Working on it</strong> if it's something
+            you're personally finding hard right now.
+          </p>
           <p className="text-ink-500 text-sm mb-4">
-            Mark a topic as a strength if you feel equipped to support someone there, or
-            "working on it" if it's something you're personally finding hard right now.
+            For a <strong className="font-bold text-sage-600">Strength</strong>, 1 means you're
+            fairly confident there and 5 means you're very strong in it. For{" "}
+            <strong className="font-bold text-gold-500">Working on it</strong>, 1 means you're
+            struggling a little and 5 means you're struggling a lot.
           </p>
           <TopicSelector topics={topics} selections={selections} onChange={setSelections} />
         </section>

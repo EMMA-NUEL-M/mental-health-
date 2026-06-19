@@ -74,7 +74,12 @@ export default function WaitingPage() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "matches" },
         (payload) => {
-          const row = payload.new as { id: string; helper_id: string; seeker_id: string };
+          const row = payload.new as {
+            id: string;
+            helper_id: string;
+            seeker_id: string;
+          };
+
           if (row.helper_id === userId || row.seeker_id === userId) {
             router.push(`/chat/${row.id}`);
           }
@@ -93,22 +98,34 @@ export default function WaitingPage() {
         {status === "checking" || status === "searching" ? (
           <>
             <div className="h-10 w-10 border-2 border-sage-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <h1 className="font-display text-xl text-ink-900">Looking for a match…</h1>
+            <h1 className="font-display text-xl text-ink-900">
+              Looking for a match…
+            </h1>
             <p className="text-ink-500 text-sm mt-2">
               You'll be connected automatically as soon as someone's available.
             </p>
           </>
         ) : (
           <>
-            <h1 className="font-display text-xl text-ink-900">No one's available right now</h1>
+            <h1 className="font-display text-xl text-ink-900">
+              No one's available right now
+            </h1>
             <p className="text-ink-500 text-sm mt-2 mb-5">
-              We'll keep listening, and you can also try again in a few minutes.
+              We'll keep listening, and you can also try again in a few
+              minutes.
             </p>
             <button onClick={lookForMatch} className="btn-primary">
               Try again
             </button>
           </>
         )}
+
+        <button
+          onClick={() => router.push("/lobby")}
+          className="block mx-auto mt-6 text-sm text-ink-500 underline"
+        >
+          Back to lobby
+        </button>
       </div>
     </main>
   );

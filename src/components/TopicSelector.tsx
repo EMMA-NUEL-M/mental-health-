@@ -27,21 +27,11 @@ export default function TopicSelector({ topics, selections, onChange }: Props) {
         return (
           <div
             key={topic.id}
-            className="flex items-center justify-between gap-4 border border-ink-500/10 rounded-card px-4 py-3"
+            className="border border-ink-500/10 rounded-card px-4 py-3"
           >
-            <span className="text-ink-900 text-sm font-medium">{topic.name}</span>
-            <div className="flex items-center gap-3">
-              {selection.kind && (
-                <input
-                  type="range"
-                  min={1}
-                  max={5}
-                  value={selection.rating}
-                  onChange={(e) => setRating(topic.id, Number(e.target.value))}
-                  className="w-24 accent-sage-600"
-                  aria-label={`${topic.name} rating`}
-                />
-              )}
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-ink-900 text-sm font-medium">{topic.name}</span>
+
               <div className="flex rounded-card overflow-hidden border border-ink-500/20 text-xs">
                 <button
                   type="button"
@@ -63,6 +53,29 @@ export default function TopicSelector({ topics, selections, onChange }: Props) {
                 </button>
               </div>
             </div>
+
+            {selection.kind && (
+              <div className="flex items-center gap-2 mt-3">
+                <span className="text-xs text-ink-500">Rate 1-5:</span>
+                <div className="flex gap-1.5">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setRating(topic.id, value)}
+                      aria-label={`Rate ${topic.name} ${value} out of 5`}
+                      className={`h-8 w-8 rounded-full text-sm font-medium border transition-colors ${
+                        selection.rating === value
+                          ? "bg-sage-600 text-white border-sage-600"
+                          : "bg-white text-ink-700 border-ink-500/20 hover:border-sage-400"
+                      }`}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
       })}

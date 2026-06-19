@@ -66,6 +66,13 @@ export default function SignupPage() {
     router.push("/onboarding");
   }
 
+  async function handleGoogleSignIn() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-12">
       <div className="card w-full max-w-md">
@@ -88,6 +95,15 @@ export default function SignupPage() {
             identifying details with people you're matched with here. Keep the
             conversation on this app.
           </p>
+        </div>
+
+        <button onClick={handleGoogleSignIn} className="btn-secondary w-full mb-5">
+          Continue with Google
+        </button>
+        <div className="flex items-center gap-3 mb-5 text-xs text-ink-500">
+          <div className="h-px bg-ink-500/15 flex-1" />
+          or use email
+          <div className="h-px bg-ink-500/15 flex-1" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
