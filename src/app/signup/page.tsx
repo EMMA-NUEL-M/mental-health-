@@ -81,8 +81,8 @@ export default function SignupPage() {
         </h1>
 
         <p className="text-ink-500 text-sm mb-6">
-          Use a display name, not your real name, if you'd rather stay
-          anonymous.
+          Use a made-up display name, not your real name. The person you're
+          matched with will only ever see this name, never your real one.
         </p>
 
         <div className="bg-gold-100 border border-gold-500/30 rounded-card p-4 mb-6 text-sm text-ink-700">
@@ -109,7 +109,10 @@ export default function SignupPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-ink-700 mb-1">
-              Display name
+              Display name{" "}
+              <span className="font-normal text-clay-600">
+                (don't enter your real name — the person you talk to will see this)
+              </span>
             </label>
 
             <input
@@ -117,7 +120,7 @@ export default function SignupPage() {
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               className="input-field"
-              placeholder="e.g. QuietRiver"
+              placeholder="e.g. QuietRiver482"
             />
           </div>
 
