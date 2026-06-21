@@ -11,28 +11,96 @@ export default function OnboardingPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<RolePreference>("seek_help");
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selections, setSelections] = useState<TopicSelection>({});
+  const [loadingInitial, setLoadingInitial] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase
-      .from("topics")
-      .select("id, name")
-      .order("sort_order")
-      .then(({ data }) => setTopics(data ?? []));
-  }, [supabase]);
+    (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const userId = userRes.user?.id;
+      if (!userId) {
+        setLoadingInitial(false);
+        return;
+      }
+
+      const { data: topicRows } = await supabase
+        .from("topics")
+        .select("id, name")
+        .order("sort_order");
+      setTopics(topicRows ?? []);
+
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("display_name, role_preference")
+        .eq("id", userId)
+        .single();
+
+      if (profileRow) {
+        setDisplayName(profileRow.display_name ?? "");
+        setRole(profileRow.role_preference as RolePreference);
+      }
+
+      const { data: existingTopics } = await supabase
+        .from("user_topics")
+        .select("topic_id, kind, rating")
+        .eq("user_id", userId);
+
+      if (existingTopics) {
+        const prefilled: TopicSelection = {};
+        existingTopics.forEach((row) => {
+          prefilled[row.topic_id] = { kind: row.kind, rating: row.rating };
+        });
+        setSelections(prefilled);
+      }
+
+      setLoadingInitial(false);
+    })();
+  }, []);
 
   async function handleSubmit() {
-    setSaving(true);
     setError(null);
+
+    if (displayName.trim().length === 0) {
+      setError("Please enter a display name.");
+      return;
+    }
+
+    setSaving(true);
 
     const { data: userRes } = await supabase.auth.getUser();
     const userId = userRes.user?.id;
     if (!userId) {
       setError("Your session expired. Please log in again.");
+      setSaving(false);
+      return;
+    }
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ display_name: displayName.trim(), role_preference: role, onboarded: true })
+      .eq("id", userId);
+
+    if (profileError) {
+      setError(profileError.message);
+      setSaving(false);
+      return;
+    }
+
+    // Replace this user's topic selections wholesale on every save, so
+    // a topic they un-select while editing doesn't linger in the
+    // database from a previous visit to this page.
+    const { error: deleteError } = await supabase
+      .from("user_topics")
+      .delete()
+      .eq("user_id", userId);
+
+    if (deleteError) {
+      setError(deleteError.message);
       setSaving(false);
       return;
     }
@@ -47,7 +115,7 @@ export default function OnboardingPage() {
       }));
 
     if (rows.length > 0) {
-      const { error: topicsError } = await supabase.from("user_topics").upsert(rows);
+      const { error: topicsError } = await supabase.from("user_topics").insert(rows);
       if (topicsError) {
         setError(topicsError.message);
         setSaving(false);
@@ -55,18 +123,15 @@ export default function OnboardingPage() {
       }
     }
 
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({ role_preference: role, onboarded: true })
-      .eq("id", userId);
-
-    if (profileError) {
-      setError(profileError.message);
-      setSaving(false);
-      return;
-    }
-
     router.push("/lobby");
+  }
+
+  if (loadingInitial) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-ink-500">Loading…</p>
+      </main>
+    );
   }
 
   return (
@@ -80,7 +145,26 @@ export default function OnboardingPage() {
         </div>
 
         <section className="card">
-          <h2 className="font-medium text-ink-900 mb-3">What are you here for?</h2>
+          <h2 className="font-medium text-ink-900 mb-1">Your display name</h2>
+          <p className="text-ink-500 text-sm mb-3">
+            This is the only name the person you're matched with will ever see.
+          </p>
+          <input
+            required
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className="input-field"
+            placeholder="e.g. QuietRiver482"
+          />
+          <p className="text-xs text-clay-600 mt-2">
+            We hope this isn't your real name — if it is, change it above before continuing.
+          </p>
+        </section>
+
+        <section className="card">
+          <h2 className="font-medium text-ink-900 mb-3">
+            Hi {displayName || "there"}, what are you here for?
+          </h2>
           <div className="flex flex-col gap-2">
             {[
               { value: "seek_help", label: "I want someone to talk to" },
