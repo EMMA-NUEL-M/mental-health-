@@ -12,6 +12,7 @@ export default function SignupPage() {
   const supabase = createClient();
 
   const [displayName, setDisplayName] = useState("");
+  const [generatingName, setGeneratingName] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -20,6 +21,16 @@ export default function SignupPage() {
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
+
+  async function handleGenerateName() {
+    setGeneratingName(true);
+    const { data, error: rpcError } = await supabase.rpc("generate_anon_display_name");
+    if (!rpcError && data) {
+      setDisplayName(data as string);
+    }
+    setGeneratingName(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,31 +50,22 @@ export default function SignupPage() {
 
     setLoading(true);
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: { display_name: displayName },
+      },
     });
 
-    if (signUpError || !data.user) {
-      setError(
-        signUpError?.message ?? "Something went wrong creating your account."
-      );
-      setLoading(false);
+    setLoading(false);
+
+    if (signUpError) {
+      setError(signUpError.message);
       return;
     }
 
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: data.user.id,
-      display_name: displayName,
-    });
-
-    if (profileError) {
-      setError(profileError.message);
-      setLoading(false);
-      return;
-    }
-
-    router.push("/onboarding");
+    setConfirmationSent(true);
   }
 
   async function handleGoogleSignIn() {
@@ -71,6 +73,20 @@ export default function SignupPage() {
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
+  }
+
+  if (confirmationSent) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6 py-12">
+        <div className="card w-full max-w-md text-center">
+          <h1 className="font-display text-2xl text-ink-900 mb-2">Check your email</h1>
+          <p className="text-ink-700 text-sm">
+            We've sent a confirmation link to <span className="font-medium">{email}</span>.
+            Click it, then come back here and log in.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -115,13 +131,23 @@ export default function SignupPage() {
               </span>
             </label>
 
-            <input
-              required
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="input-field"
-              placeholder="e.g. QuietRiver482"
-            />
+            <div className="flex gap-2">
+              <input
+                required
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="input-field flex-1"
+                placeholder="e.g. QuietRiver482"
+              />
+              <button
+                type="button"
+                onClick={handleGenerateName}
+                disabled={generatingName}
+                className="btn-secondary whitespace-nowrap"
+              >
+                {generatingName ? "…" : "Generate"}
+              </button>
+            </div>
           </div>
 
           <div>
