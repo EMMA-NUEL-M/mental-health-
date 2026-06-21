@@ -12,6 +12,7 @@ export default function OnboardingPage() {
   const supabase = createClient();
 
   const [displayName, setDisplayName] = useState("");
+  const [generatingName, setGeneratingName] = useState(false);
   const [role, setRole] = useState<RolePreference>("seek_help");
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selections, setSelections] = useState<TopicSelection>({});
@@ -61,6 +62,15 @@ export default function OnboardingPage() {
       setLoadingInitial(false);
     })();
   }, []);
+
+  async function handleGenerateName() {
+    setGeneratingName(true);
+    const { data, error: rpcError } = await supabase.rpc("generate_anon_display_name");
+    if (!rpcError && data) {
+      setDisplayName(data as string);
+    }
+    setGeneratingName(false);
+  }
 
   async function handleSubmit() {
     setError(null);
@@ -149,13 +159,23 @@ export default function OnboardingPage() {
           <p className="text-ink-500 text-sm mb-3">
             This is the only name the person you're matched with will ever see.
           </p>
-          <input
-            required
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="input-field"
-            placeholder="e.g. QuietRiver482"
-          />
+          <div className="flex gap-2">
+            <input
+              required
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="input-field flex-1"
+              placeholder="e.g. QuietRiver482"
+            />
+            <button
+              type="button"
+              onClick={handleGenerateName}
+              disabled={generatingName}
+              className="btn-secondary whitespace-nowrap"
+            >
+              {generatingName ? "…" : "Generate"}
+            </button>
+          </div>
           <p className="text-xs text-clay-600 mt-2">
             We hope this isn't your real name — if it is, change it above before continuing.
           </p>
