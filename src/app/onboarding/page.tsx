@@ -160,8 +160,12 @@ export default function OnboardingPage() {
 
         <section className="card">
           <h2 className="font-medium text-ink-900 mb-1">Your display name</h2>
-          <p className="text-ink-500 text-sm mb-3">
+          <p className="text-ink-500 text-sm mb-1">
             This is the only name the person you're matched with will ever see.
+          </p>
+          <p className="text-xs text-clay-600 mb-3">
+            Please don't use your real name — use a made-up name or hit Generate
+            below to get one automatically.
           </p>
           <div className="flex flex-col gap-2">
             <div className="flex gap-2 items-center">
@@ -180,7 +184,7 @@ export default function OnboardingPage() {
               disabled={generatingName}
               className="btn-secondary w-full"
             >
-              {generatingName ? "…" : "Generate"}
+              {generatingName ? "…" : "Generate a name for me"}
             </button>
           </div>
         </section>
@@ -224,11 +228,15 @@ export default function OnboardingPage() {
             <strong className="font-bold text-gold-500">Working on it</strong> if it's something
             you're personally finding hard right now.
           </p>
-          <p className="text-ink-500 text-sm mb-4">
+          <p className="text-ink-500 text-sm mb-2">
             For a <strong className="font-bold text-sage-600">Strength</strong>, 1 means you're
             fairly confident there and 5 means you're very strong in it. For{" "}
             <strong className="font-bold text-gold-500">Working on it</strong>, 1 means you're
             struggling a little and 5 means you're struggling a lot.
+          </p>
+          <p className="text-xs text-ink-500 mb-4">
+            You don't have to select all of them — just the ones that feel relevant
+            to you right now. You can always come back and update these later.
           </p>
           <TopicSelector topics={topics} selections={selections} onChange={setSelections} />
         </section>
