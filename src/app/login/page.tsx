@@ -47,8 +47,7 @@ export default function LoginPage() {
       return;
     }
 
-   router.push(profile?.onboarded ? "/lobby" : "/onboarding");
-   
+    router.push(profile?.onboarded ? "/lobby" : "/onboarding");
   }
 
   async function handleGoogleSignIn() {
@@ -61,6 +60,9 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-12">
       <div className="card w-full max-w-md">
+        <p className="text-center text-xs tracking-widest uppercase text-sage-600 font-semibold mb-4">
+          Confide
+        </p>
         <h1 className="font-display text-2xl text-ink-900 mb-6">
           Welcome back
         </h1>

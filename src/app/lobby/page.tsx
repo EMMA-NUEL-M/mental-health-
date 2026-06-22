@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
+import Avatar from "@/components/Avatar";
 
 type RolePreference = "seek_help" | "give_help" | "both";
 
@@ -93,6 +94,16 @@ export default function LobbyPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
       <div className="card max-w-md w-full text-center">
+        <p className="text-xs tracking-widest uppercase text-sage-600 font-semibold mb-4">
+          Confide
+        </p>
+
+        {profile && (
+          <div className="flex justify-center mb-3">
+            <Avatar name={profile.display_name} size="lg" />
+          </div>
+        )}
+
         <h1 className="font-display text-2xl text-ink-900 mb-1">
           Hey {profile?.display_name ?? "there"}
         </h1>

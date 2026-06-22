@@ -7,18 +7,23 @@ import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 
 type Status = "checking" | "searching" | "none_available" | "found";
 
+const CLOCK_FACES = ["🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚", "🕛"];
+
+const PLAYFUL_MESSAGES = [
+  "Looking for someone kind…",
+  "Checking who's around…",
+  "Finding your match…",
+  "Scanning the lobby…",
+  "Almost there…",
+];
+
 export default function WaitingPage() {
   usePresenceHeartbeat();
   const router = useRouter();
   const supabase = createClient();
   const [status, setStatus] = useState<Status>("checking");
-  const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
-
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-  }, []);
+  const [clockIndex, setClockIndex] = useState(0);
+  const [messageIndex, setMessageIndex] = useState(0);
 
   async function lookForMatch() {
     setStatus("searching");
@@ -55,7 +60,6 @@ export default function WaitingPage() {
       return;
     }
 
-    setPendingMatchId(matchId);
     setStatus("found");
     router.push(`/chat/${matchId}`);
   }
@@ -66,60 +70,75 @@ export default function WaitingPage() {
 
   // Listen for someone else opening a match where we're the helper.
   useEffect(() => {
-    if (!userId) return;
+    let channelUserId: string | null = null;
+    let unsubscribe: (() => void) | null = null;
 
-    const channel = supabase
-      .channel(`incoming-matches-${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "matches" },
-        (payload) => {
-          const row = payload.new as {
-            id: string;
-            helper_id: string;
-            seeker_id: string;
-          };
+    (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      channelUserId = userRes.user?.id ?? null;
+      if (!channelUserId) return;
 
-          if (row.helper_id === userId || row.seeker_id === userId) {
-            router.push(`/chat/${row.id}`);
+      const channel = supabase
+        .channel(`incoming-matches-${channelUserId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "matches" },
+          (payload) => {
+            const row = payload.new as { id: string; helper_id: string; seeker_id: string };
+            if (row.helper_id === channelUserId || row.seeker_id === channelUserId) {
+              router.push(`/chat/${row.id}`);
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId]);
+      unsubscribe = () => supabase.removeChannel(channel);
+    })();
+
+    return () => unsubscribe?.();
+  }, []);
+
+  // Cycle the clock face for a playful "ticking" effect while waiting.
+  useEffect(() => {
+    if (status !== "checking" && status !== "searching") return;
+    const interval = setInterval(() => {
+      setClockIndex((i) => (i + 1) % CLOCK_FACES.length);
+    }, 180);
+    return () => clearInterval(interval);
+  }, [status]);
+
+  // Rotate through a few playful status lines.
+  useEffect(() => {
+    if (status !== "checking" && status !== "searching") return;
+    const interval = setInterval(() => {
+      setMessageIndex((i) => (i + 1) % PLAYFUL_MESSAGES.length);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [status]);
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
       <div className="card max-w-md w-full text-center">
         {status === "checking" || status === "searching" ? (
           <>
-            <div className="h-10 w-10 border-2 border-sage-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <h1 className="font-display text-xl text-ink-900">
-              Looking for a match…
-            </h1>
+            <div className="text-6xl mb-4">{CLOCK_FACES[clockIndex]}</div>
+            <h1 className="font-display text-xl text-ink-900">{PLAYFUL_MESSAGES[messageIndex]}</h1>
             <p className="text-ink-500 text-sm mt-2">
               You'll be connected automatically as soon as someone's available.
             </p>
           </>
         ) : (
           <>
-            <h1 className="font-display text-xl text-ink-900">
-              No one's available right now
-            </h1>
+            <div className="text-5xl mb-4">😴</div>
+            <h1 className="font-display text-xl text-ink-900">No one's available right now</h1>
             <p className="text-ink-500 text-sm mt-2 mb-5">
-              We'll keep listening, and you can also try again in a few
-              minutes.
+              We'll keep listening, and you can also try again in a few minutes.
             </p>
             <button onClick={lookForMatch} className="btn-primary">
               Try again
             </button>
           </>
         )}
-
         <button
           onClick={() => router.push("/lobby")}
           className="block mx-auto mt-6 text-sm text-ink-500 underline"

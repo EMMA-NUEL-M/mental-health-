@@ -3,6 +3,7 @@ import Link from "next/link";
 export default function HomePage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+      <h2 className="font-display text-2xl text-sage-700 tracking-tight mb-2">Confide</h2>
       <p className="text-sage-600 font-medium tracking-wide uppercase text-xs mb-4">
         For students, by students
       </p>

@@ -8,18 +8,24 @@ import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import PresenceDot from "@/components/PresenceDot";
 import CrisisModal from "@/components/CrisisModal";
 import ReportModal from "@/components/ReportModal";
+import Avatar from "@/components/Avatar";
+
+type ResponseStatus = "pending" | "accepted" | "declined";
 
 type Match = {
   id: string;
   helper_id: string;
   seeker_id: string;
   status: "pending" | "active" | "ended" | "rejected";
+  helper_status: ResponseStatus;
+  seeker_status: ResponseStatus;
 };
 
 type OtherProfile = {
   id: string;
   display_name: string;
   is_online: boolean;
+  last_seen: string;
 };
 
 type TopicTag = { name: string; kind: "strength" | "weakness"; rating: number };
@@ -56,7 +62,7 @@ export default function ChatPage() {
 
       const { data: matchRow } = await supabase
         .from("matches")
-        .select("id, helper_id, seeker_id, status")
+        .select("id, helper_id, seeker_id, status, helper_status, seeker_status")
         .eq("id", params.matchId)
         .single();
       if (!matchRow) return;
@@ -66,7 +72,7 @@ export default function ChatPage() {
 
       const { data: otherProfile } = await supabase
         .from("profiles")
-        .select("id, display_name, is_online")
+        .select("id, display_name, is_online, last_seen")
         .eq("id", otherId)
         .single();
       if (otherProfile) setOther(otherProfile);
@@ -96,7 +102,8 @@ export default function ChatPage() {
     })();
   }, [params.matchId]);
 
-  // Realtime: new messages + match status changes (e.g. other side accepts).
+  // Realtime: new messages, match status changes, and the other
+  // person's profile (so their online/last-seen status stays current).
   useEffect(() => {
     const channel = supabase
       .channel(`match-${params.matchId}`)
@@ -117,18 +124,53 @@ export default function ChatPage() {
     };
   }, [params.matchId]);
 
+  // Lightweight polling for the other person's presence, since profile
+  // updates (is_online/last_seen) aren't in the matches/messages feed.
+  useEffect(() => {
+    if (!other) return;
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, display_name, is_online, last_seen")
+        .eq("id", other.id)
+        .single();
+      if (data) setOther(data);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [other?.id]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   async function respondToMatch(accept: boolean) {
-    if (!match) return;
-    await supabase
-      .from("matches")
-      .update({ status: accept ? "active" : "rejected" })
-      .eq("id", match.id);
+    if (!match || !userId) return;
+    const iAmSeeker = match.seeker_id === userId;
+    const myColumn = iAmSeeker ? "seeker_status" : "helper_status";
+    const theirCurrentStatus = iAmSeeker ? match.helper_status : match.seeker_status;
 
-    if (!accept) router.push("/lobby");
+    if (!accept) {
+      await supabase
+        .from("matches")
+        .update({ [myColumn]: "declined", status: "rejected" })
+        .eq("id", match.id);
+      router.push("/lobby");
+      return;
+    }
+
+    const updatePayload: Record<string, string> = { [myColumn]: "accepted" };
+    if (theirCurrentStatus === "accepted") {
+      updatePayload.status = "active";
+    }
+
+    const { data: updated } = await supabase
+      .from("matches")
+      .update(updatePayload)
+      .eq("id", match.id)
+      .select()
+      .single();
+
+    if (updated) setMatch(updated as Match);
   }
 
   async function sendMessage(text: string) {
@@ -165,17 +207,22 @@ export default function ChatPage() {
   }
 
   const iAmSeeker = match.seeker_id === userId;
-  const waitingOnOtherToRespond = match.status === "pending" && iAmSeeker;
-  const iNeedToRespond = match.status === "pending" && !iAmSeeker;
+  const myStatus = iAmSeeker ? match.seeker_status : match.helper_status;
+  const theirStatus = iAmSeeker ? match.helper_status : match.seeker_status;
+  const iNeedToRespond = match.status === "pending" && myStatus === "pending";
+  const waitingOnThem = match.status === "pending" && myStatus === "accepted" && theirStatus !== "accepted";
 
   if (match.status === "pending") {
     return (
       <main className="min-h-screen flex items-center justify-center px-6">
         <div className="card max-w-md w-full">
-          <h1 className="font-display text-xl text-ink-900 mb-1">
-            {other.display_name}
-          </h1>
-          <PresenceDot online={other.is_online} />
+          <div className="flex items-center gap-3 mb-1">
+            <Avatar name={other.display_name} size="md" />
+            <div>
+              <h1 className="font-display text-xl text-ink-900">{other.display_name}</h1>
+              <PresenceDot online={other.is_online} lastSeen={other.last_seen} />
+            </div>
+          </div>
 
           <div className="mt-4">
             <p className="text-sm font-medium text-ink-700 mb-2">
@@ -201,15 +248,15 @@ export default function ChatPage() {
           {iNeedToRespond ? (
             <div className="flex gap-2 mt-6">
               <button onClick={() => respondToMatch(false)} className="btn-secondary flex-1">
-                Not now
+                Decline
               </button>
               <button onClick={() => respondToMatch(true)} className="btn-primary flex-1">
-                Start chatting
+                Accept
               </button>
             </div>
           ) : (
             <p className="text-ink-500 text-sm mt-6">
-              {waitingOnOtherToRespond
+              {waitingOnThem
                 ? "Waiting for them to accept…"
                 : "This match isn't active."}
             </p>
@@ -222,9 +269,12 @@ export default function ChatPage() {
   return (
     <main className="min-h-screen flex flex-col">
       <header className="border-b border-ink-500/10 px-6 py-4 flex items-center justify-between bg-white">
-        <div>
-          <h1 className="font-medium text-ink-900">{other.display_name}</h1>
-          <PresenceDot online={other.is_online} />
+        <div className="flex items-center gap-3">
+          <Avatar name={other.display_name} size="sm" />
+          <div>
+            <h1 className="font-medium text-ink-900">{other.display_name}</h1>
+            <PresenceDot online={other.is_online} lastSeen={other.last_seen} />
+          </div>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowReport(true)} className="text-xs text-ink-500 underline">
