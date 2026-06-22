@@ -102,8 +102,7 @@ export default function ChatPage() {
     })();
   }, [params.matchId]);
 
-  // Realtime: new messages, match status changes, and the other
-  // person's profile (so their online/last-seen status stays current).
+  // Realtime: new messages and match status changes.
   useEffect(() => {
     const channel = supabase
       .channel(`match-${params.matchId}`)
@@ -124,8 +123,7 @@ export default function ChatPage() {
     };
   }, [params.matchId]);
 
-  // Lightweight polling for the other person's presence, since profile
-  // updates (is_online/last_seen) aren't in the matches/messages feed.
+  // Lightweight polling for the other person's presence.
   useEffect(() => {
     if (!other) return;
     const interval = setInterval(async () => {
@@ -210,7 +208,80 @@ export default function ChatPage() {
   const myStatus = iAmSeeker ? match.seeker_status : match.helper_status;
   const theirStatus = iAmSeeker ? match.helper_status : match.seeker_status;
   const iNeedToRespond = match.status === "pending" && myStatus === "pending";
-  const waitingOnThem = match.status === "pending" && myStatus === "accepted" && theirStatus !== "accepted";
+  const iAcceptedTheyDeclined =
+    myStatus === "accepted" && theirStatus === "declined";
+  const waitingOnThem =
+    match.status === "pending" &&
+    myStatus === "accepted" &&
+    theirStatus === "pending";
+
+  // Show the declined screen if the match was rejected and this user
+  // had already accepted — they need to know and get options.
+  if (match.status === "rejected" && iAcceptedTheyDeclined) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6">
+        <div className="card max-w-md w-full text-center">
+          <div className="text-4xl mb-4">😔</div>
+          <h1 className="font-display text-xl text-ink-900 mb-2">
+            They decided not to connect
+          </h1>
+          <p className="text-ink-500 text-sm mb-6">
+            {other.display_name} declined this match. That's okay — it's not
+            personal. You can search for someone else or head back to the lobby.
+          </p>
+          <button
+            onClick={() => router.push("/waiting")}
+            className="btn-primary w-full mb-3"
+          >
+            Search for someone else
+          </button>
+          <button
+            onClick={() => router.push("/lobby")}
+            className="btn-secondary w-full mb-3"
+          >
+            Back to lobby
+          </button>
+          <button
+            onClick={() => router.push("/onboarding")}
+            className="text-sm text-ink-500 underline"
+          >
+            Edit my preferences
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // Show a waiting screen if the match was rejected but this user
+  // hadn't responded yet (the other person preemptively declined).
+  if (match.status === "rejected" && myStatus === "pending") {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6">
+        <div className="card max-w-md w-full text-center">
+          <div className="text-4xl mb-4">👋</div>
+          <h1 className="font-display text-xl text-ink-900 mb-2">
+            This match is no longer available
+          </h1>
+          <p className="text-ink-500 text-sm mb-6">
+            The other person decided not to connect. You can search for
+            someone else or head back to the lobby.
+          </p>
+          <button
+            onClick={() => router.push("/waiting")}
+            className="btn-primary w-full mb-3"
+          >
+            Search for someone else
+          </button>
+          <button
+            onClick={() => router.push("/lobby")}
+            className="btn-secondary w-full"
+          >
+            Back to lobby
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   if (match.status === "pending") {
     return (
@@ -219,7 +290,9 @@ export default function ChatPage() {
           <div className="flex items-center gap-3 mb-1">
             <Avatar name={other.display_name} size="md" />
             <div>
-              <h1 className="font-display text-xl text-ink-900">{other.display_name}</h1>
+              <h1 className="font-display text-xl text-ink-900">
+                {other.display_name}
+              </h1>
               <PresenceDot online={other.is_online} lastSeen={other.last_seen} />
             </div>
           </div>
@@ -247,18 +320,40 @@ export default function ChatPage() {
 
           {iNeedToRespond ? (
             <div className="flex gap-2 mt-6">
-              <button onClick={() => respondToMatch(false)} className="btn-secondary flex-1">
+              <button
+                onClick={() => respondToMatch(false)}
+                className="btn-secondary flex-1"
+              >
                 Decline
               </button>
-              <button onClick={() => respondToMatch(true)} className="btn-primary flex-1">
+              <button
+                onClick={() => respondToMatch(true)}
+                className="btn-primary flex-1"
+              >
                 Accept
+              </button>
+            </div>
+          ) : waitingOnThem ? (
+            <div className="mt-6">
+              <p className="text-ink-500 text-sm mb-4">
+                Waiting for {other.display_name} to respond…
+              </p>
+              <button
+                onClick={() => router.push("/lobby")}
+                className="btn-secondary w-full mb-2"
+              >
+                Back to lobby
+              </button>
+              <button
+                onClick={() => router.push("/onboarding")}
+                className="text-sm text-ink-500 underline w-full text-center block"
+              >
+                Edit my preferences
               </button>
             </div>
           ) : (
             <p className="text-ink-500 text-sm mt-6">
-              {waitingOnThem
-                ? "Waiting for them to accept…"
-                : "This match isn't active."}
+              This match is no longer active.
             </p>
           )}
         </div>
@@ -267,26 +362,40 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col">
-      <header className="border-b border-ink-500/10 px-6 py-4 flex items-center justify-between bg-white">
+    <main className="flex flex-col h-screen overflow-hidden">
+      <header className="shrink-0 border-b border-ink-500/10 px-4 py-3 flex items-center justify-between bg-white">
         <div className="flex items-center gap-3">
           <Avatar name={other.display_name} size="sm" />
           <div>
-            <h1 className="font-medium text-ink-900">{other.display_name}</h1>
+            <h1 className="font-medium text-ink-900 text-sm">
+              {other.display_name}
+            </h1>
             <PresenceDot online={other.is_online} lastSeen={other.last_seen} />
           </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowReport(true)} className="text-xs text-ink-500 underline">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push("/lobby")}
+            className="text-xs text-ink-500 underline"
+          >
+            Lobby
+          </button>
+          <button
+            onClick={() => setShowReport(true)}
+            className="text-xs text-ink-500 underline"
+          >
             Report
           </button>
-          <button onClick={endMatch} className="text-xs text-clay-600 underline">
+          <button
+            onClick={endMatch}
+            className="text-xs text-clay-600 underline"
+          >
             End chat
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-3 max-w-2xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 max-w-2xl mx-auto w-full">
         {messages.map((m) => (
           <div
             key={m.id}
@@ -302,16 +411,16 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-ink-500/10 px-6 py-4 bg-white">
+      <div className="shrink-0 border-t border-ink-500/10 px-4 py-3 bg-white">
         <div className="max-w-2xl mx-auto flex gap-2">
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendClick()}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendClick()}
             className="input-field"
-            placeholder="Type a message… (don't share phone numbers or your location)"
+            placeholder="Type a message…"
           />
-          <button onClick={handleSendClick} className="btn-primary">
+          <button onClick={handleSendClick} className="btn-primary shrink-0">
             Send
           </button>
         </div>
