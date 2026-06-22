@@ -56,6 +56,7 @@ export default function SignupPage() {
       password,
       options: {
         data: { display_name: displayName },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -135,20 +136,22 @@ export default function SignupPage() {
               </span>
             </label>
 
-            <div className="flex gap-2 items-center">
-              <Avatar name={displayName || "?"} size="md" />
-              <input
-                required
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="input-field flex-1"
-                placeholder="e.g. QuietRiver482"
-              />
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2 items-center">
+                <Avatar name={displayName || "?"} size="md" />
+                <input
+                  required
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="input-field flex-1"
+                  placeholder="e.g. QuietRiver482"
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleGenerateName}
                 disabled={generatingName}
-                className="btn-secondary whitespace-nowrap"
+                className="btn-secondary w-full"
               >
                 {generatingName ? "…" : "Generate"}
               </button>
