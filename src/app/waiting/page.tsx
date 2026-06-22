@@ -112,7 +112,7 @@ export default function WaitingPage() {
     if (status !== "checking" && status !== "searching") return;
     const interval = setInterval(() => {
       setMessageIndex((i) => (i + 1) % PLAYFUL_MESSAGES.length);
-    }, 5000);
+    }, 20000);
     return () => clearInterval(interval);
   }, [status]);
 
