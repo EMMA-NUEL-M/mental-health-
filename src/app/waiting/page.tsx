@@ -98,21 +98,21 @@ export default function WaitingPage() {
     return () => unsubscribe?.();
   }, []);
 
-  // Cycle the clock face for a playful "ticking" effect while waiting.
+  // Cycle the clock face for a smooth but readable ticking effect.
   useEffect(() => {
     if (status !== "checking" && status !== "searching") return;
     const interval = setInterval(() => {
       setClockIndex((i) => (i + 1) % CLOCK_FACES.length);
-    }, 180);
+    }, 750);
     return () => clearInterval(interval);
   }, [status]);
 
-  // Rotate through a few playful status lines.
+  // Rotate through playful status lines slowly so users can read them.
   useEffect(() => {
     if (status !== "checking" && status !== "searching") return;
     const interval = setInterval(() => {
       setMessageIndex((i) => (i + 1) % PLAYFUL_MESSAGES.length);
-    }, 2200);
+    }, 5000);
     return () => clearInterval(interval);
   }, [status]);
 
@@ -122,7 +122,9 @@ export default function WaitingPage() {
         {status === "checking" || status === "searching" ? (
           <>
             <div className="text-6xl mb-4">{CLOCK_FACES[clockIndex]}</div>
-            <h1 className="font-display text-xl text-ink-900">{PLAYFUL_MESSAGES[messageIndex]}</h1>
+            <h1 className="font-display text-xl text-ink-900">
+              {PLAYFUL_MESSAGES[messageIndex]}
+            </h1>
             <p className="text-ink-500 text-sm mt-2">
               You'll be connected automatically as soon as someone's available.
             </p>
@@ -130,7 +132,9 @@ export default function WaitingPage() {
         ) : (
           <>
             <div className="text-5xl mb-4">😴</div>
-            <h1 className="font-display text-xl text-ink-900">No one's available right now</h1>
+            <h1 className="font-display text-xl text-ink-900">
+              No one's available right now
+            </h1>
             <p className="text-ink-500 text-sm mt-2 mb-5">
               We'll keep listening, and you can also try again in a few minutes.
             </p>
