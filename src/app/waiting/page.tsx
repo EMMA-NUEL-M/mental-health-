@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
@@ -17,6 +17,9 @@ const PLAYFUL_MESSAGES = [
   "Almost there…",
 ];
 
+const SEARCH_DURATION_MS = 30000;
+const RETRY_INTERVAL_MS = 5000;
+
 export default function WaitingPage() {
   usePresenceHeartbeat();
   const router = useRouter();
@@ -24,14 +27,14 @@ export default function WaitingPage() {
   const [status, setStatus] = useState<Status>("checking");
   const [clockIndex, setClockIndex] = useState(0);
   const [messageIndex, setMessageIndex] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(30);
+  const searchingRef = useRef(false);
 
-  async function lookForMatch() {
-    setStatus("searching");
+  async function tryOnce(): Promise<boolean> {
     const { data: userRes } = await supabase.auth.getUser();
     const userId = userRes.user?.id;
-    if (!userId) return;
+    if (!userId) return false;
 
-    // Already in a pending/active match? Jump straight there.
     const { data: existing } = await supabase
       .from("matches")
       .select("id")
@@ -42,7 +45,7 @@ export default function WaitingPage() {
 
     if (existing) {
       router.push(`/chat/${existing.id}`);
-      return;
+      return true;
     }
 
     const { data: matchId, error } = await supabase.rpc("request_match", {
@@ -51,21 +54,57 @@ export default function WaitingPage() {
 
     if (error) {
       console.error(error);
-      setStatus("none_available");
-      return;
+      return false;
     }
 
-    if (!matchId) {
-      setStatus("none_available");
-      return;
+    if (matchId) {
+      router.push(`/chat/${matchId}`);
+      return true;
     }
 
-    setStatus("found");
-    router.push(`/chat/${matchId}`);
+    return false;
+  }
+
+  async function startSearch() {
+    if (searchingRef.current) return;
+    searchingRef.current = true;
+    setStatus("searching");
+    setSecondsLeft(30);
+
+    const found = await tryOnce();
+    if (found) return;
+
+    const startTime = Date.now();
+
+    const retryInterval = setInterval(async () => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, Math.ceil((SEARCH_DURATION_MS - elapsed) / 1000));
+      setSecondsLeft(remaining);
+
+      if (elapsed >= SEARCH_DURATION_MS) {
+        clearInterval(retryInterval);
+        searchingRef.current = false;
+        setStatus("none_available");
+        return;
+      }
+
+      const found = await tryOnce();
+      if (found) {
+        clearInterval(retryInterval);
+      }
+    }, RETRY_INTERVAL_MS);
+  }
+
+  function handleTryAgain() {
+    searchingRef.current = false;
+    startSearch();
   }
 
   useEffect(() => {
-    lookForMatch();
+    startSearch();
+    return () => {
+      searchingRef.current = false;
+    };
   }, []);
 
   // Listen for someone else opening a match where we're the helper.
@@ -103,7 +142,7 @@ export default function WaitingPage() {
     if (status !== "checking" && status !== "searching") return;
     const interval = setInterval(() => {
       setClockIndex((i) => (i + 1) % CLOCK_FACES.length);
-    }, 2750);
+    }, 750);
     return () => clearInterval(interval);
   }, [status]);
 
@@ -112,7 +151,7 @@ export default function WaitingPage() {
     if (status !== "checking" && status !== "searching") return;
     const interval = setInterval(() => {
       setMessageIndex((i) => (i + 1) % PLAYFUL_MESSAGES.length);
-    }, 20000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [status]);
 
@@ -128,6 +167,9 @@ export default function WaitingPage() {
             <p className="text-ink-500 text-sm mt-2">
               You'll be connected automatically as soon as someone's available.
             </p>
+            <p className="text-ink-500 text-xs mt-3">
+              Searching for {secondsLeft}s…
+            </p>
           </>
         ) : (
           <>
@@ -136,10 +178,10 @@ export default function WaitingPage() {
               No one's available right now
             </h1>
             <p className="text-ink-500 text-sm mt-2 mb-5">
-              We'll keep listening, and you can also try again in a few minutes.
+              Try again in a few minutes — new people come online throughout the day.
             </p>
-            <button onClick={lookForMatch} className="btn-primary">
-              Try again
+            <button onClick={handleTryAgain} className="btn-primary">
+              Search again
             </button>
           </>
         )}
