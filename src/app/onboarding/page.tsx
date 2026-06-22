@@ -163,20 +163,22 @@ export default function OnboardingPage() {
           <p className="text-ink-500 text-sm mb-3">
             This is the only name the person you're matched with will ever see.
           </p>
-          <div className="flex gap-2 items-center">
-            <Avatar name={displayName || "?"} size="md" />
-            <input
-              required
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="input-field flex-1"
-              placeholder="e.g. QuietRiver482"
-            />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2 items-center">
+              <Avatar name={displayName || "?"} size="md" />
+              <input
+                required
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="input-field flex-1"
+                placeholder="e.g. QuietRiver482"
+              />
+            </div>
             <button
               type="button"
               onClick={handleGenerateName}
               disabled={generatingName}
-              className="btn-secondary whitespace-nowrap"
+              className="btn-secondary w-full"
             >
               {generatingName ? "…" : "Generate"}
             </button>
@@ -213,7 +215,9 @@ export default function OnboardingPage() {
         </section>
 
         <section className="card">
-          <h2 className="font-medium text-ink-900 mb-1">Your strengths and what you're working on</h2>
+          <h2 className="font-medium text-ink-900 mb-1">
+            Your strengths and what you're working on
+          </h2>
           <p className="text-ink-500 text-sm mb-2">
             Mark a topic as a <strong className="font-bold text-sage-600">Strength</strong> if you
             feel equipped to support someone there, or{" "}
