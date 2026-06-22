@@ -103,7 +103,7 @@ export default function WaitingPage() {
     if (status !== "checking" && status !== "searching") return;
     const interval = setInterval(() => {
       setClockIndex((i) => (i + 1) % CLOCK_FACES.length);
-    }, 750);
+    }, 2750);
     return () => clearInterval(interval);
   }, [status]);
 
