@@ -17,7 +17,7 @@ const PLAYFUL_MESSAGES = [
   "Almost there…",
 ];
 
-const SEARCH_DURATION_MS = 30000;
+const SEARCH_DURATION_MS = 120000;
 const RETRY_INTERVAL_MS = 5000;
 
 export default function WaitingPage() {
@@ -27,7 +27,7 @@ export default function WaitingPage() {
   const [status, setStatus] = useState<Status>("checking");
   const [clockIndex, setClockIndex] = useState(0);
   const [messageIndex, setMessageIndex] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(30);
+  const [secondsLeft, setSecondsLeft] = useState(120);
   const searchingRef = useRef(false);
 
   async function tryOnce(): Promise<boolean> {
@@ -69,7 +69,7 @@ export default function WaitingPage() {
     if (searchingRef.current) return;
     searchingRef.current = true;
     setStatus("searching");
-    setSecondsLeft(30);
+    setSecondsLeft(120);
 
     const found = await tryOnce();
     if (found) return;
