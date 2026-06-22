@@ -22,7 +22,6 @@ export default function SignupPage() {
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [confirmationSent, setConfirmationSent] = useState(false);
 
   async function handleGenerateName() {
     setGeneratingName(true);
@@ -51,12 +50,11 @@ export default function SignupPage() {
 
     setLoading(true);
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { display_name: displayName },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -67,7 +65,12 @@ export default function SignupPage() {
       return;
     }
 
-    setConfirmationSent(true);
+    if (!data.user) {
+      setError("Something went wrong creating your account. Please try again.");
+      return;
+    }
+
+    router.push("/onboarding");
   }
 
   async function handleGoogleSignIn() {
@@ -75,20 +78,6 @@ export default function SignupPage() {
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
-  }
-
-  if (confirmationSent) {
-    return (
-      <main className="min-h-screen flex items-center justify-center px-6 py-12">
-        <div className="card w-full max-w-md text-center">
-          <h1 className="font-display text-2xl text-ink-900 mb-2">Check your email</h1>
-          <p className="text-ink-700 text-sm">
-            We've sent a confirmation link to <span className="font-medium">{email}</span>.
-            Click it, then come back here and log in.
-          </p>
-        </div>
-      </main>
-    );
   }
 
   return (
